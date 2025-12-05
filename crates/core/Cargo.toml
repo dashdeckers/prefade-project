@@ -1,0 +1,11 @@
+[package]
+name = "prefade-core"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "prefade_core"
+path = "src/lib.rs"
+
+[dependencies]
+regex = "1"

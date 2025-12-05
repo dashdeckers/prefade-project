@@ -1,0 +1,13 @@
+[package]
+name = "prefade-node"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "prefade_node"
+crate-type = ["cdylib"]
+
+[dependencies]
+prefade-core = { path = "../core" }
+napi = { version = "2", features = ["napi4"] }
+napi-derive = "2"

@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "crates/build-all",
+    "crates/core",
+    "crates/py",
+    "crates/node",
+    "crates/lua",
+]
+resolver = "2"

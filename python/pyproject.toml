@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prefade"
+version = "0.1.0"
+description = "Example multi-target Rust/Python/TS domain library"
+requires-python = ">=3.8"
+authors = [{ name = "Your Name", email = "you@example.com" }]
+readme = "README.md"
+
+# Note: Native extension built by workspace 'build-all' command
+# Run: cargo run --release -p build-all
+# This copies _prefade_native.pyd to prefade/ directory
+
+dependencies = [
+	"ipykernel>=6.0",
+	"notebook>=7.0"
+]

@@ -1,0 +1,15 @@
+{
+  "name": "mydomain",
+  "version": "0.1.0",
+  "description": "Example multi-target Rust/Python/TS domain library (Node wrapper)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node dist/test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

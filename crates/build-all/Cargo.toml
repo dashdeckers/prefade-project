@@ -1,0 +1,8 @@
+[package]
+name = "build-all"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "build-all"
+path = "src/main.rs"

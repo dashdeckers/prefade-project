@@ -1,0 +1,73 @@
+# Multi-language project (Rust + Python + TypeScript/Node.js + Lua)
+
+## Rust
+/target/
+Cargo.lock
+*.pdb
+
+## Python
+python/.venv/
+python/__pycache__/
+python/**/__pycache__/
+python/*.py[cod]
+python/**/*.py[cod]
+python/*$py.class
+python/**/*$py.class
+python/*.egg-info/
+python/**/dist/
+python/wheels/
+python/**/*.so
+python/**/*.dylib
+python/**/*.dll
+
+## Node.js / TypeScript
+node/node_modules/
+node/dist/
+node/*.node
+node/*.log
+node/npm-debug.log*
+node/yarn-debug.log*
+node/yarn-error.log*
+node/yarn.lock
+
+## Lua
+lua/**/*.so
+lua/**/*.dylib
+lua/**/*.dll
+lua/.luarocks/
+lua/luarocks/
+
+## IDEs and Editors
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Session.vim
+.helix/
+.zed/
+
+## Build artifacts
+*.o
+*.a
+*.lib
+*.exe
+*.out
+
+## Temporary files
+\#*
+\#*\#
+.#*
+tags
+tags.*
+TAGS
+TAGS.*
+
+## System files
+desktop.ini
+Thumbs.db
