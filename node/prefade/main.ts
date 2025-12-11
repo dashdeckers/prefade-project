@@ -1,10 +1,9 @@
-import { Email, NonEmptyStr, sendEmail } from "./index";
+import { computeAverage } from "./index";
 
-function sendWelcome(address: string): void {
-  const email = Email.parse(address);         // validated in Rust
-  const subject = NonEmptyStr.parse("Welcome!");
-  const body = NonEmptyStr.parse("Thanks for joining.");
-  sendEmail(email, subject, body);
-}
+const data = [1.0, 2.0, 3.0, 4.0, 5.0];
+const result = computeAverage(data);
+console.log(`Average of [${data}]: ${result}`);
 
-sendWelcome("test@mail.com");
+const emptyResult = computeAverage([]);
+console.log(`Average of []: ${emptyResult}`);
+

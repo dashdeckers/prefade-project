@@ -1,143 +1,80 @@
-use std::env;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 fn main() {
-    let workspace_root = env::current_dir().expect("Failed to get current directory");
-    println!("🔨 Building all FFI bindings...\n");
+    let root = std::env::current_dir().expect("Failed to get current directory");
 
-    let mut built_any = false;
-
-    // Python (requires interpreter)
-    if let Some(python) = find_python_interpreter() {
-        println!("📦 Python (PyO3)");
-        build_crate("prefade-py", Some(("PYO3_PYTHON", python.as_path())), &workspace_root, "Python");
-        let py_source = artifact(&workspace_root, "_prefade_native", "dll", "dylib", "so");
-        let py_dest = if cfg!(windows) {
-            workspace_root.join("python/prefade/_prefade_native.pyd")
-        } else {
-            workspace_root.join("python/prefade/_prefade_native.so")
-        };
-        copy_file(&py_source, &py_dest, "Python");
-        built_any = true;
-    } else {
-        println!("⚠️  Skipping Python: interpreter not found");
+    // Build Python bindings
+    if let Some(python) = find_python() {
+        println!("Building Python bindings...");
+        cargo_build("prefade-py", &root, Some(("PYO3_PYTHON", &python)));
+        copy_artifact(&root, "_prefade_native", "python/prefade/_prefade_native");
     }
 
-    // Node (skip if Node is absent)
-    if command_available(if cfg!(windows) { "node.exe" } else { "node" }) {
-        println!("\n📦 Node.js (napi-rs)");
-        build_crate("prefade-node", None, &workspace_root, "Node.js");
-        let node_source = artifact(&workspace_root, "prefade_node", "dll", "dylib", "so");
-        let node_dest = workspace_root.join("node/prefade_node.node");
-        copy_file(&node_source, &node_dest, "Node.js");
-        built_any = true;
-    } else {
-        println!("⚠️  Skipping Node.js: interpreter not found");
-    }
+    // Build Node.js bindings
+    println!("Building Node.js bindings...");
+    cargo_build("prefade-node", &root, None);
+    copy_artifact(&root, "prefade_node", "node/prefade_node");
 
-    // Lua (skip if Lua is absent)
-    if command_available(if cfg!(windows) { "lua.exe" } else { "lua" }) {
-        println!("\n📦 Lua (mlua)");
-        build_crate("prefade-lua", None, &workspace_root, "Lua");
-        let lua_source = artifact(&workspace_root, "prefade_lua", "dll", "dylib", "so");
-        let lua_dest = if cfg!(windows) {
-            workspace_root.join("lua/prefade/prefade_native.dll")
-        } else {
-            workspace_root.join("lua/prefade/prefade_native.so")
-        };
-        copy_file(&lua_source, &lua_dest, "Lua");
-        built_any = true;
-    } else {
-        println!("⚠️  Skipping Lua: interpreter not found");
-    }
-
-    if built_any {
-        println!("\n✅ Bindings built and distributed.");
-        println!("Next steps:");
-        println!("  • Node.js: cd node && npm run build && node dist/main.js");
-        println!("  • Lua:    cd lua && lua prefade/main.lua");
-        println!("  • Python: cd python && uv run python use-case1/main.py");
-    } else {
-        println!("⚠️  Nothing built: missing all interpreters (Python/Node/Lua)");
-    }
+    println!("Done.");
 }
 
-fn build_crate(crate_name: &str, extra_env: Option<(&str, &Path)>, root: &Path, label: &str) {
+fn cargo_build(crate_name: &str, root: &Path, env: Option<(&str, &Path)>) {
     let mut cmd = Command::new("cargo");
     cmd.args(["build", "--release", "-p", crate_name]).current_dir(root);
-    if let Some((key, val)) = extra_env {
-        cmd.env(key, val);
+    if let Some((k, v)) = env {
+        cmd.env(k, v);
     }
-    let status = cmd.status().unwrap_or_else(|e| panic!("Failed to build {}: {}", label, e));
-    if !status.success() {
-        panic!("{} build failed", label);
-    }
+    assert!(cmd.status().expect("cargo failed").success(), "Build failed: {crate_name}");
 }
 
-fn copy_file(source: &PathBuf, dest: &PathBuf, lang: &str) {
-    if let Err(e) = std::fs::copy(source, dest) {
-        panic!("Failed to copy {} binary: {}\n  Source: {}\n  Dest: {}", lang, e, source.display(), dest.display());
-    }
-    println!("  ✓ {} → {}", source.file_name().unwrap().to_string_lossy(), dest.display());
-}
-
-fn artifact(root: &Path, stem: &str, win_ext: &str, mac_ext: &str, unix_ext: &str) -> PathBuf {
-    if cfg!(windows) {
-        root.join(format!("target/release/{}.{}", stem, win_ext))
+fn copy_artifact(root: &Path, name: &str, dest_base: &str) {
+    let (src_name, dest_ext) = if cfg!(windows) {
+        (format!("{name}.dll"), "pyd")
     } else if cfg!(target_os = "macos") {
-        root.join(format!("target/release/lib{}.{}", stem, mac_ext))
+        (format!("lib{name}.dylib"), "so")
     } else {
-        root.join(format!("target/release/lib{}.{}", stem, unix_ext))
-    }
+        (format!("lib{name}.so"), "so")
+    };
+
+    let src = root.join("target/release").join(&src_name);
+    let dest = if dest_base.contains("node") {
+        root.join(format!("{dest_base}.node"))
+    } else {
+        root.join(format!("{dest_base}.{dest_ext}"))
+    };
+
+    std::fs::copy(&src, &dest)
+        .unwrap_or_else(|e| panic!("Copy failed: {} -> {}: {e}", src.display(), dest.display()));
 }
 
-fn command_available(cmd: &str) -> bool {
-    Command::new(cmd)
-        .arg("--version")
-    .stdout(Stdio::null())
-    .stderr(Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
-}
-
-fn find_python_interpreter() -> Option<PathBuf> {
-    if let Ok(python) = env::var("PYO3_PYTHON") {
-        let path = PathBuf::from(python);
+fn find_python() -> Option<PathBuf> {
+    // Check PYO3_PYTHON env var
+    if let Ok(p) = std::env::var("PYO3_PYTHON") {
+        let path = PathBuf::from(p);
         if path.exists() {
             return Some(path);
         }
     }
 
-    let workspace_root = env::current_dir().ok()?;
-    let venv_python = if cfg!(windows) {
-        workspace_root.join("python/.venv/Scripts/python.exe")
+    // Check local venv
+    let root = std::env::current_dir().ok()?;
+    let venv = if cfg!(windows) {
+        root.join("python/.venv/Scripts/python.exe")
     } else {
-        workspace_root.join("python/.venv/bin/python")
+        root.join("python/.venv/bin/python")
     };
-    if venv_python.exists() {
-        return Some(venv_python);
+    if venv.exists() {
+        return Some(venv);
     }
 
-    let python_commands = if cfg!(windows) {
-        vec!["python", "python3", "py"]
-    } else {
-        vec!["python3", "python"]
-    };
-
-    for cmd in python_commands {
-        if let Ok(output) = Command::new(cmd)
-            .arg("-c")
-            .arg("import sys; print(sys.executable)")
-            .output()
-        {
-            if output.status.success() {
-                if let Ok(path_str) = String::from_utf8(output.stdout) {
-                    let path = PathBuf::from(path_str.trim());
-                    if path.exists() {
-                        return Some(path);
-                    }
+    // Try system Python
+    for cmd in ["python3", "python"] {
+        if let Ok(out) = Command::new(cmd).args(["-c", "import sys; print(sys.executable)"]).output() {
+            if out.status.success() {
+                let path = PathBuf::from(String::from_utf8_lossy(&out.stdout).trim());
+                if path.exists() {
+                    return Some(path);
                 }
             }
         }

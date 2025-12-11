@@ -8,4 +8,3 @@ name = "prefade_core"
 path = "src/lib.rs"
 
 [dependencies]
-regex = "1"

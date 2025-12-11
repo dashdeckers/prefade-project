@@ -1,10 +1,10 @@
-from prefade import Email, NonEmptyStr, send_email
-
-def send_welcome(address: str) -> None:
-    email = Email(address)          # validated in Rust
-    subject = NonEmptyStr("Welcome!")
-    body = NonEmptyStr("Thanks for joining.")
-    send_email(email, subject, body)
+from prefade import compute_average
 
 if __name__ == "__main__":
-    send_welcome("test@mail.com")
+    data = [1.0, 2.0, 3.0, 4.0, 5.0]
+    result = compute_average(data)
+    print(f"Average of {data}: {result}")
+
+    empty_result = compute_average([])
+    print(f"Average of []: {empty_result}")
+
